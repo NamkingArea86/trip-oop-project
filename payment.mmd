@@ -1,0 +1,118 @@
+sequenceDiagram
+    actor Traveler
+    participant System
+    participant Booking
+    participant ResidenceBooking
+    participant VehicleBooking
+    participant ActivityBooking
+    participant User
+    participant Promotion
+    participant Coupon
+    participant Staff
+    participant Bank
+    participant Payment
+
+    autonumber
+
+    %% Request payment
+    Traveler ->>+ System : request_payment(userID,bookingID)
+
+    %% Get booking items
+    System ->>+ Booking : get_booking_items(userID,bookingID)
+
+    loop for each residence booking
+        Booking ->>+ ResidenceBooking : get_detail(residenceID)
+        ResidenceBooking -->>- Booking : item
+    end
+
+    loop for each vehicle booking
+        Booking ->>+ VehicleBooking : get_detail(vehicleID)
+        VehicleBooking -->>- Booking : item
+    end
+
+    loop for each activity booking
+        Booking ->>+ ActivityBooking : get_detail(activityID)
+        ActivityBooking -->>- Booking : item
+    end
+
+    Booking -->>- System : item_list , base_price
+
+    %% Discounts info
+    System ->>+ Promotion : get_valid_promotion(base_price)
+    Promotion -->>- System : promotion_discount
+
+    System ->>+ User : calculate_membership(userID)
+    User -->>- System : membership_discount
+
+    %% Coupon
+    System ->>+ User : get_coupon_list(userID)
+    User -->>- System : coupon_list
+
+    loop
+        System ->>+ Coupon : validate_coupon(code)
+        Coupon -->>- System : coupon_discount
+    end
+
+    System -->> Traveler : display_coupon(code_coupon_list)
+
+    Traveler ->> System : select_coupon(code)
+    
+    %% Let Payment calculate everything
+    System ->>+ Payment : calculate_price(base_price, promotion_discount, membership_discount, coupon_discount)
+    Payment -->>- System : final_amount
+
+    %% Show summary before paying
+    System -->> Traveler : show_booking_summary(item_list, discounts, final_amount)
+
+    %% Choose method
+    Traveler ->> System : choose_payment_method(method)
+
+    alt Transfer
+        %% System sends QR
+        System -->> Traveler : show_QR_code()
+
+        %% Traveler transfers and sends slip no.
+        Traveler ->> System : submit_slip_number(slip_no)
+
+        %% Bank verifies transfer
+        System ->>+ Bank : verify_transfer(slip_no)
+        Bank -->>- System : result
+
+        alt success
+            System ->>+ Booking : confirm()
+            Booking -->>- System : confirmed
+
+            System ->>+ Payment : generate_receipt(item_list, final_amount)
+            Payment -->>- System : receipt
+
+            System -->> Traveler : payment_success(receipt)
+        end
+
+    else Cash
+        %% Traveler selects pay at counter
+        Traveler ->> System : request_cash_payment()
+
+        %% System tells traveler to pay staff
+        System -->> Traveler : go_to_staff_counter()
+
+        %% Traveler pays staff
+        Traveler ->> Staff : pay_cash(amount)
+
+        %% Staff verifies money
+        Staff ->> Staff : verify_cash()
+
+        %% Staff sends result to system
+        Staff -->> System : result
+
+        alt success
+            System ->>+ Booking : confirm()
+            Booking -->>- System : confirmed
+
+            System ->>+ Payment : generate_receipt(item_list, final_amount)
+            Payment -->>- System : receipt
+
+            System -->> Traveler : payment_success(receipt)
+        end
+    end
+
+    System -->>- Traveler : done

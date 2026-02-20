@@ -1,0 +1,135 @@
+---
+config:
+  layout: elk
+---
+classDiagram
+direction TB
+
+class System {
+    - users : List~User~
+    - bookings : List~Booking~
+    - promotions : List~Promotion~
+    - coupons : List~Coupon~
+    - payments : List~Payment~
+    +request_payment(userID, bookingID)
+    +display_coupon()
+    +show_booking_summary()
+    +choose_payment_method()
+    +payment_success()
+    +payment_failed()
+}
+
+class Booking {
+    - booking_id : str
+    - user : User
+    - items : List
+    - base_price : float
+    - status : str
+    +get_booking_items(userID, bookingID)
+    +confirm()
+}
+
+class ResidenceBooking {
+    - residence_id : str
+    - price : float
+    - date_range : str
+    +get_detail(residenceID)
+}
+
+class VehicleBooking {
+    - vehicle_id : str
+    - price : float
+    - rental_period : str
+    +get_detail(vehicleID)
+}
+
+class ActivityBooking {
+    - activity_id : str
+    - price : float
+    - schedule : str
+    +get_detail(activityID)
+}
+
+class User {
+    - user_id : str
+    - membership_level : str
+    - coupons : List~Coupon~
+    +calculate_membership(userID)
+    +get_coupon_list(userID)
+}
+
+class Promotion {
+    - promo_id : str
+    - discount_rate : float
+    - min_price : float
+    - expiry_date : date
+    +get_valid_promotion(base_price)
+}
+
+class Coupon {
+    - code : str
+    - discount : float
+    - expiry_date : date
+    - is_used : bool
+    +validate_coupon(code)
+}
+
+class Payment {
+    - payment_id : str
+    - booking : Booking
+    - final_amount : float
+    - method : str
+    - status : str
+    +calculate_price(base, promo, member, coupon)
+    +generate_receipt(items, amount)
+}
+
+class Bank {
+    - bank_name : str
+    +verify_transfer(slip_no)
+}
+
+class Staff {
+    - staff_id : str
+    - name : str
+    +verify_cash()
+}
+
+class Manager
+class Resource
+class Residence
+class Vehicle
+class Room
+class Activity
+class Review
+
+%% ===== RELATIONSHIPS =====
+
+System "1" o-- "1..*" User
+System "1" o-- "1..*" Promotion
+System o-- Resourc
+System --> Booking
+System --> Coupon
+System --> Payment
+System --> Bank
+System --> Staff
+
+User <|-- Staff
+Staff <|-- Manager
+
+Resource <|-- Residence
+Resource <|-- Vehicle
+Residence o-- Room
+
+Booking "1" *-- "1..*" ResidenceBooking
+Booking "1" *-- "1..*" VehicleBooking
+Booking "1" *-- "1..*" ActivityBooking
+
+User "1" o-- "0..*" Booking
+User "1" o-- "0..*" Coupon
+
+Booking "1" *-- "1" Payment
+
+Review --o Manager
+Review --o Residence
+Review --o Activity
