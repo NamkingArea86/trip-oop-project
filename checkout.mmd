@@ -1,0 +1,55 @@
+sequenceDiagram
+    actor Traveler
+    participant System
+    participant Booking
+    participant Staff
+    participant Residence
+    participant Vehicle
+
+    autonumber
+
+    Traveler ->>+ System : request_checkout(userID, bookingID)
+
+    System ->>+ Booking : get_booking_detail(bookingID)
+    Booking -->>- System : booking_info
+
+    System -->>+ Staff : notify_checkout_request(bookingID)
+
+    Staff ->> Residence : check_room_condition()
+    Residence -->> Staff : condition_report
+
+    Staff ->> Vehicle : check_vehicle_return()
+    Vehicle -->> Staff : condition_report
+
+    Staff -->>- System : inspection_result(report)
+
+    %% NEW: record actual checkout time & inspection log
+    System ->> System : record_checkout_time(timestamp)
+    System ->> System : save_inspection_log(staffID, report, timestamp)
+
+    alt no damage
+        System ->> Residence : update_status(available)
+        System ->> Vehicle : update_status(available)
+        System ->> Booking : update_status(waiting_payment)
+
+        %% NEW: notify cleaning & update search
+        System ->> Residence : notify_cleaning_required()
+        System ->> System : update_search_index(resourceID)
+
+        System -->> Traveler : checkout_pending_payment()
+
+    else damage found
+        System ->> Booking : add_damage_fee(amount, detail)
+        System ->> Residence : update_status(maintenance)
+        System ->> Vehicle : update_status(maintenance)
+        System ->> Booking : update_status(waiting_payment)
+
+        System -->> Traveler : damage_report(detail, amount_due)
+        System -->> Traveler : checkout_pending_payment()
+    end
+
+    %% NEW: mark user finished trip & send summary
+    System ->> Booking : mark_user_checked_out()
+    System -->> Traveler : checkout_summary(bookingID, report, status)
+
+    System -->>- Traveler : done

@@ -1,0 +1,200 @@
+---
+config:
+  layout: elk
+---
+classDiagram
+direction TB
+
+class System {
+    - user_list : List~User~
+    - resource_list : List~Resource~
+    - activity_list : List~Activity~
+    - promotion : Dict~Date, Promotion~
+    - company_wallet : float
+    + add_user(User)
+    + remove_user(User)
+    + add_resource(Resource)
+    + remove_resource(Resource)
+    + add_activity(Activity)
+    + remove_activity(Activity)
+    + searching_resource(resource_id)
+    + use_promotion_discount(promotion_id)
+    + authenticate_request(User)
+    + create_booking(user_id)
+    + book_residence(user_id, residence_id, booking_id)
+    + book_vehicle(user_id, vehicle_id, booking_id)
+    + book_activity(user_id, activity_id, booking_id)
+    + request_payment(user_id, booking_id)
+    + select_coupon(coupon_code)
+}
+
+class User {
+    - user_id : String
+    - user_name : String
+    - user_mail : String
+    - user_password : String
+    - age : int
+    - driver_license : String
+    - membership_level : String
+    - total_spending : float
+    - booking_list : List~Booking~
+    - coupon_list : List~Coupon~
+    - booking_record_list : List~Transaction~
+    + edit_profile(user_id,user_name,user_mail)
+    + add_age(age)
+    + view_booking(booking_id)
+    + calculate_membership(user_id) 
+    + pay_fee(money,bank_id)
+    + review(residence_id,booking_id)
+    + get-coupon_list(user_id)
+}
+
+class Staff {
+    - department : String
+    + update_resource_status(resource_id)
+    + create_activity()
+    + update_activity(activity_id)
+    + assign_activity_to_booking()
+    + show_review(resource_id,activity_id) 
+    + pay_cash(amount)
+    + verify_payment(amount) 
+}
+
+class Manager {
+    + check_review(resource_id,activity_id)
+    + ban_user(user_id)
+}
+
+class Review {
+    - rating : flaot
+    - review : String
+}
+
+class Resource {
+    - resource_id : String
+    - status : String
+    - resorce_type : String
+    + update_status()
+    + check_availability()
+}
+
+class Residence {
+    - residence_name : String
+    - room_list : List~Room~
+    + show_review()
+}
+
+class Room {
+    - room_id : String
+    - room_type : String
+    - price : float
+    - capacity : int
+    - status : String
+}
+
+class Vehicle {
+    - vehicle_id : String
+    - seat : int
+    - price_per_day : float
+    - status : String
+}
+
+class Activity {
+    - activity_id : String
+    - activity_name : String
+    - activity_type : String
+    - price_per_round : float
+    - Slot_time : String
+    - capacity : int
+    - status : String
+    + update_activity()
+    + show_review()
+}
+
+class Booking {
+    - booking_id : String
+    - status : String
+    - residencebooking_list : List~Residencebooking~
+    - vehiclebooking_list : List~Vehiclebooking~
+    - activitybooking_list : List~Activitybooking~
+    + cancel(booking_id, user_id)
+    + update_status(booking_id, user_id)
+    + get_booking_item(user_id, booking_id)
+    + confirm()
+}
+
+class Residencebooking {
+    - booking_id
+    - status
+    + add_booking_id()
+    + update_status()
+    + check_avalible()
+    + cancle()
+    + get_detail(residenc_id)
+}
+
+class Vehiclebooking {
+    - booking_id
+    - status
+    + add_booking_id()
+    + update_status()
+    + check_avalible()
+    + cancle()
+    + get_detail(vehicle_id)
+}
+
+class Activitybooking {
+    - booking_id
+    - status
+    + add_booking_id()
+    + update_status()
+    + check_avalible()
+    + cancle()
+    + get_detail(activity_id)
+}
+
+class Promotion {
+    - discount_rate : float
+    - expired_date : Date 
+    + get_valid_promotion(base_price) 
+}
+
+class Coupon {
+    - coupon_code : String
+    - discount_rate : float 
+    + validate_coupon(coupon_code)
+}
+
+class Payment {
+    - base_price : float
+    - final_price : float
+    + calculate_price(base_price, promotion_dicount, membership_discount, coupon_discount) 
+    + generate_receipt(item_list, final_amount) 
+}
+
+class Bank{
+    + verify_transfer(slip_no)
+}
+
+System "1" o-- "1..*" User
+System "1" o-- "1..*" Resource
+System "1" o-- "1..*" Promotion
+User <|-- Staff
+Staff <|-- Manager
+Resource <|-- Residence
+Resource <|-- Vehicle
+System o-- Activity
+Residence o-- Room
+Booking "1" *-- "1..*" Residencebooking
+Booking "1" *-- "1..*" Vehiclebooking
+Booking "1" *-- "1..*" Activitybooking
+User "1" o-- "0..*" Booking
+User "1" o-- "0..*" Coupon
+Booking "1" *-- "1" Payment
+Booking --> Residence
+Booking --> Vehicle
+Booking --> Activity
+System o-- Review
+Review --o Staff
+Review --o Residence
+Review --o Activity
