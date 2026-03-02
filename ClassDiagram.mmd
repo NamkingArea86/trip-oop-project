@@ -17,15 +17,15 @@ class System {
     + remove_resource(Resource)
     + add_activity(Activity)
     + remove_activity(Activity)
-    + searching_resource(resource_id)
+    + select_resource(residence_id, member_id , start_date , end_date)
     + use_promotion_discount(promotion_id)
     + authenticate_request(User)
-    + create_booking(user_id)
     + book_residence(user_id, residence_id, booking_id)
     + book_vehicle(user_id, vehicle_id, booking_id)
     + book_activity(user_id, activity_id, booking_id)
     + request_payment(user_id, booking_id)
     + select_coupon(coupon_code)
+    + choose_payment(Transfer or Cash)
 }
 
 class User {
@@ -104,7 +104,6 @@ class Activity {
     - activity_name : String
     - activity_type : String
     - price_per_round : float
-    - Slot_time : String
     - capacity : int
     - status : String
     + update_activity()
@@ -117,6 +116,10 @@ class Booking {
     - residencebooking_list : List~Residencebooking~
     - vehiclebooking_list : List~Vehiclebooking~
     - activitybooking_list : List~Activitybooking~
+    + create_booking(ResidenceObject , start_date , end_date)
+    + add_residencebooking(ResidenceObj)
+    + add_vehiclebooking(VehicleObj)
+    + add_activitybooking(ActivitydeObj)
     + cancel(booking_id, user_id)
     + update_status(booking_id, user_id)
     + get_booking_item(user_id, booking_id)
@@ -126,19 +129,28 @@ class Booking {
 class Residencebooking {
     - booking_id
     - status
+    - start_date
+    - end_date
+    - residence_id
+    + add_residence_id()
+    + add_start_date()
+    + add_end_date()
     + add_booking_id()
     + update_status()
-    + check_avalible()
+    + check_available()
     + cancle()
+    + get_residence_id()
     + get_detail(residenc_id)
 }
 
 class Vehiclebooking {
     - booking_id
     - status
+    - vehicle_id
+    + add_vehicle_id()
     + add_booking_id()
     + update_status()
-    + check_avalible()
+    + check_available()
     + cancle()
     + get_detail(vehicle_id)
 }
@@ -146,9 +158,13 @@ class Vehiclebooking {
 class Activitybooking {
     - booking_id
     - status
-    + add_booking_id()
-    + update_status()
-    + check_avalible()
+    - start_datetime
+    - end_datetime
+    - activity_id
+    + add_activity_id()
+    + add_booking_id(booking_id)
+    + update_status(status)
+    + check_available()
     + cancle()
     + get_detail(activity_id)
 }
@@ -176,6 +192,15 @@ class Bank{
     + verify_transfer(slip_no)
 }
 
+class TimeSlot{
+    - time_slot_id
+    - start_datetime
+    - end_datetime
+    + add_slot_id(slot_id)
+    + add_start_datetime(datetime)
+    + add_end_datetime(datetime)            
+}
+
 System "1" o-- "1..*" User
 System "1" o-- "1..*" Resource
 System "1" o-- "1..*" Promotion
@@ -198,3 +223,5 @@ System o-- Review
 Review --o Staff
 Review --o Residence
 Review --o Activity
+TimeSlot --> Activity
+Payment --> Bank

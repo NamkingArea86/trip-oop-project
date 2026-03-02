@@ -11,13 +11,13 @@ class User:
         self.level = level
         self.coupons = coupons or []
 
-    def membership_rate(self):
-        if self.level == "gold":
-            return 0.2
-        elif self.level == "silver":
-            return 0.1
-        else:
-            return 0
+    # UML: calculate_membership(user_id)
+    def calculate_membership(self, user_id):
+        return {"gold": 0.2, "silver": 0.1}.get(self.level, 0)
+
+    # UML: get_coupon_list(user_id)
+    def get_coupon_list(self, user_id):
+        return [c.code for c in self.coupons if c.validate_coupon(c.code)]
 
 
 # ---------------- COUPON ----------------
@@ -28,8 +28,11 @@ class Coupon:
         self.expiry = expiry
         self.used = False
 
-    def valid(self):
-        return not self.used and date.today() <= self.expiry
+    # UML: validate_coupon(coupon_code)
+    def validate_coupon(self, coupon_code):
+        return (self.code == coupon_code
+                and not self.used
+                and date.today() <= self.expiry)
 
 
 # ---------------- PROMOTION ----------------
@@ -39,47 +42,75 @@ class Promotion:
         self.min_price = min_price
         self.expiry = expiry
 
-    def discount(self, price):
-        if price >= self.min_price and date.today() <= self.expiry:
-            return price * self.rate
+    # UML: get_valid_promotion(base_price)
+    def get_valid_promotion(self, base_price):
+        if base_price >= self.min_price and date.today() <= self.expiry:
+            return base_price * self.rate
         return 0
 
 
-# ---------------- RESOURCE TYPES ----------------
+# ---------------- RESIDENCE BOOKING ----------------
 class Residencebooking:
-    def __init__(self, residence_id, price):
+    def __init__(self, residence_id, price, start_date=None, end_date=None):
         self.residence_id = residence_id
         self.price = price
+        self.start_date = start_date
+        self.end_date = end_date
         self.status = "pending"
+        self.paid = False
 
-    def reserve(self):
-        self.status = "reserved"
+    def get_detail(self, residence_id):
+        return self
+
+    def update_status(self, status):
+        self.status = status
+
+    def mark_paid(self):
+        self.paid = True
 
     def get_id(self):
         return self.residence_id
 
 
+# ---------------- VEHICLE BOOKING ----------------
 class Vehiclebooking:
     def __init__(self, vehicle_id, price):
         self.vehicle_id = vehicle_id
         self.price = price
         self.status = "pending"
+        self.paid = False
 
-    def reserve(self):
-        self.status = "reserved"
+    def get_detail(self, vehicle_id):
+        return self
+
+    def update_status(self, status):
+        self.status = status
+
+    def mark_paid(self):
+        self.paid = True
 
     def get_id(self):
         return self.vehicle_id
 
 
+# ---------------- ACTIVITY BOOKING ----------------
 class Activitybooking:
-    def __init__(self, activity_id, price):
+    def __init__(self, activity_id, price, start_datetime=None, end_datetime=None):
         self.activity_id = activity_id
         self.price = price
+        self.start_datetime = start_datetime
+        self.end_datetime = end_datetime
         self.status = "pending"
+        self.paid = False
 
-    def reserve(self):
-        self.status = "reserved"
+    def get_detail(self, activity_id):
+        return self
+
+    def update_status(self, status):
+        self.status = status
+
+    def mark_paid(self):
+        self.paid = True
 
     def get_id(self):
         return self.activity_id
@@ -90,39 +121,46 @@ class Booking:
     def __init__(self, booking_id, user):
         self.booking_id = booking_id
         self.user = user
-
-        # แยกตามที่คุณต้องการ
         self.residence = []
         self.vehicle = []
         self.activity = []
+        self.status = "unpaid"
 
-        self.payment_status = "unpaid"
+    # UML: get_unpaid_items(user_id, booking_id)
+    def get_unpaid_items(self, user_id, booking_id):
+        items = self.residence + self.vehicle + self.activity
+        unpaid = [i for i in items if not i.paid]
+        price = sum(i.price for i in unpaid)
+        return unpaid, price
 
-    def get_all_items(self):
-        return self.residence + self.vehicle + self.activity
+    # UML: calculate_price(...)
+    def calculate_price(self, base_price, promotion_discount, membership_discount, coupon_discount):
+        total = base_price - promotion_discount
+        total -= total * membership_discount
+        total -= coupon_discount
+        return max(total, 0)
 
-    def base_price(self):
-        return sum(i.price for i in self.get_all_items())
+    # UML: mark_items_paid(item_list)
+    def mark_items_paid(self, item_list):
+        for i in item_list:
+            i.mark_paid()
+            i.update_status("reserved")
+
+        if all(i.paid for i in (self.residence + self.vehicle + self.activity)):
+            self.status = "fully_paid"
+        else:
+            self.status = "partially_paid"
 
 
 # ---------------- PAYMENT ----------------
 class Payment:
+    # UML: generate_receipt(item_list, final_amount)
     @staticmethod
-    def calculate(base, promo, member, coupon):
-        total = base - promo
-        total -= total * member
-        total -= coupon
-        return max(total, 0)
-
-    @staticmethod
-    def receipt(items, amount):
+    def generate_receipt(items, amount):
         return {
             "items": [
-                {
-                    "id": i.get_id(),   
-                    "type": i.__class__.__name__,
-                    "price": i.price
-                } for i in items
+                {"id": i.get_id(), "type": i.__class__.__name__, "price": i.price}
+                for i in items
             ],
             "amount": round(amount, 2)
         }
@@ -130,9 +168,10 @@ class Payment:
 
 # ---------------- BANK ----------------
 class Bank:
+    # UML: verify_transfer(slip_no)
     @staticmethod
-    def verify(slip):
-        return slip and slip.startswith("OK")
+    def verify_transfer(slip_no):
+        return slip_no and slip_no.startswith("OK")
 
 
 # ---------------- SYSTEM ----------------
@@ -140,67 +179,54 @@ class System:
     def __init__(self):
         self.promotions = []
 
-    # STEP 1 : preview
-    def preview(self, user, booking):
+    # UML + Sequence: request_payment(user_id, booking_id)
+    def request_payment(self, user, booking):
+        items, base = booking.get_unpaid_items(user.user_id, booking.booking_id)
 
-        base = booking.base_price()
-
-        promo = max([p.discount(base) for p in self.promotions], default=0)
-        member = user.membership_rate()
-
-        coupons = [c.code for c in user.coupons if c.valid()]
+        promo = max([p.get_valid_promotion(base) for p in self.promotions], default=0)
+        member = user.calculate_membership(user.user_id)
+        coupons = user.get_coupon_list(user.user_id)
 
         return {
-            "items": [
-                {"id": i.get_id(),
-                 "type": i.__class__.__name__, 
-                 "price": i.price}
-                for i in booking.get_all_items()
+            "unpaid_items": [
+                {"id": i.get_id(), "type": i.__class__.__name__, "price": i.price}
+                for i in items
             ],
-            "base_price": base,
+            "unpaid_price": base,
             "promotion_discount": promo,
-            "membership_rate": member,
+            "membership_discount": member,
             "available_coupons": coupons
         }
 
-    # STEP 2 : pay
-    def pay(self, user, booking, coupon_code, slip):
+    # UML + Sequence: submit_slip_number(...)
+    def submit_slip_number(self, user, booking, coupon_code, slip_no):
 
-        base = booking.base_price()
-        promo = max([p.discount(base) for p in self.promotions], default=0)
-        member = user.membership_rate()
+        items, base = booking.get_unpaid_items(user.user_id, booking.booking_id)
+        if base == 0:
+            raise HTTPException(400, "Nothing to pay")
 
-        # coupon
+        promo = max([p.get_valid_promotion(base) for p in self.promotions], default=0)
+        member = user.calculate_membership(user.user_id)
+
         coupon_value = 0
         used = None
         for c in user.coupons:
-            if c.code == coupon_code and c.valid():
+            if coupon_code and c.validate_coupon(coupon_code):
                 coupon_value = c.discount
                 used = c
                 break
 
-        final = Payment.calculate(base, promo, member, coupon_value)
+        final = booking.calculate_price(base, promo, member, coupon_value)
 
-        # verify bank
-        if not Bank.verify(slip):
+        if not Bank.verify_transfer(slip_no):
             raise HTTPException(400, "Transfer failed")
 
-        # update booking status
-        booking.payment_status = "deposit_paid"
+        booking.mark_items_paid(items)
 
-        # reserve resources
-        for r in booking.residence:
-            r.reserve()
-        for v in booking.vehicle:
-            v.reserve()
-        for a in booking.activity:
-            a.reserve()
-
-        # mark coupon used
         if used:
             used.used = True
 
-        return Payment.receipt(booking.get_all_items(), final)
+        return Payment.generate_receipt(items, final)
 
 
 # ================= MOCK DATA =================
@@ -208,30 +234,17 @@ system = System()
 users = {}
 bookings = {}
 
-# ----- user -----
-u = User(
-    "U001",
-    "silver",
-    [
-        Coupon("DISC10", 100, date(2026, 12, 31)),
-        Coupon("DISC50", 50, date(2026, 12, 31))
-    ]
-)
+u = User("U001", "silver", [
+    Coupon("DISC10", 100, date(2026,12,31)),
+    Coupon("DISC50", 50, date(2026,12,31))
+])
 users[u.user_id] = u
 
-# ----- booking -----
 b = Booking("B001", u)
-
-b.residence.append(Residencebooking("H1", 2000))
-b.vehicle.append(Vehiclebooking("V1", 1500))
-b.activity.append(Activitybooking("A1", 1000))
-
+b.residence.append(Residencebooking("HOTEL1", 2000))
 bookings[b.booking_id] = b
 
-# ----- promotion -----
-system.promotions.append(
-    Promotion(0.1, 1000, date(2026, 12, 31))
-)
+system.promotions.append(Promotion(0.1, 1000, date(2026,12,31)))
 
 
 # ---------------- REQUEST MODELS ----------------
@@ -247,24 +260,24 @@ class PayReq(BaseModel):
 
 
 # ---------------- API ----------------
-@app.post("/preview")
-def preview(data: PreviewReq):
+@app.post("/request_payment")
+def request_payment(data: PreviewReq):
     if data.user_id not in users:
         raise HTTPException(404, "User not found")
     if data.booking_id not in bookings:
         raise HTTPException(404, "Booking not found")
 
-    return system.preview(users[data.user_id], bookings[data.booking_id])
+    return system.request_payment(users[data.user_id], bookings[data.booking_id])
 
 
-@app.post("/pay")
-def pay(data: PayReq):
+@app.post("/submit_slip_number")
+def submit_slip_number(data: PayReq):
     if data.user_id not in users:
         raise HTTPException(404, "User not found")
     if data.booking_id not in bookings:
         raise HTTPException(404, "Booking not found")
 
-    return system.pay(
+    return system.submit_slip_number(
         users[data.user_id],
         bookings[data.booking_id],
         data.coupon,

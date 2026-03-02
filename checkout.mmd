@@ -23,7 +23,6 @@ sequenceDiagram
 
     Staff -->>- System : inspection_result(report)
 
-    %% NEW: record actual checkout time & inspection log
     System ->> System : record_checkout_time(timestamp)
     System ->> System : save_inspection_log(staffID, report, timestamp)
 
@@ -32,7 +31,6 @@ sequenceDiagram
         System ->> Vehicle : update_status(available)
         System ->> Booking : update_status(waiting_payment)
 
-        %% NEW: notify cleaning & update search
         System ->> Residence : notify_cleaning_required()
         System ->> System : update_search_index(resourceID)
 
@@ -48,7 +46,6 @@ sequenceDiagram
         System -->> Traveler : checkout_pending_payment()
     end
 
-    %% NEW: mark user finished trip & send summary
     System ->> Booking : mark_user_checked_out()
     System -->> Traveler : checkout_summary(bookingID, report, status)
 

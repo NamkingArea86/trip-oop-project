@@ -15,26 +15,26 @@ sequenceDiagram
 
     Traveler ->>+ System : request_payment(user_id, booking_id)
 
-    System ->>+ Booking : get_booking_item(user_id, booking_id)
-    
-    loop residence items
-        Booking ->>+ Residencebooking : get_detail(residence_id)
+    System ->>+ Booking : get_unpaid_items(user_id, booking_id)
+
+    loop unpaid residence
+        Booking ->>+ Residencebooking : get_detail(id)
         Residencebooking -->>- Booking : item
     end
 
-    loop vehicle items
-        Booking ->>+ Vehiclebooking : get_detail(vehicle_id)
+    loop unpaid vehicle
+        Booking ->>+ Vehiclebooking : get_detail(id)
         Vehiclebooking -->>- Booking : item
     end
 
-    loop activity items
-        Booking ->>+ Activitybooking : get_detail(activity_id)
+    loop unpaid activity
+        Booking ->>+ Activitybooking : get_detail(id)
         Activitybooking -->>- Booking : item
     end
 
-    Booking -->>- System : item_list, base_price
+    Booking -->>- System : unpaid_item_list, unpaid_price
 
-    System ->>+ Promotion : get_valid_promotion(base_price)
+    System ->>+ Promotion : get_valid_promotion(unpaid_price)
     Promotion -->>- System : promotion_discount
 
     System ->>+ User : calculate_membership(user_id)
@@ -51,10 +51,10 @@ sequenceDiagram
     System -->> Traveler : display(list_coupon)
     Traveler ->> System : select_coupon(coupon_code)
 
-    System ->>+ Payment : calculate_price(base_price, promotion_discount, membership_discount, coupon_discount)
-    Payment -->>- System : final_price
+    System ->>+ Booking : calculate_price(unpaid_price, discounts)
+    Booking -->>- System : final_price
 
-    System -->> Traveler : show_booking_summary(item_list, final_price)
+    System -->> Traveler : show_booking_summary(unpaid_item_list, final_price)
 
     Traveler ->> System : submit_slip_number(slip_no)
 
@@ -62,14 +62,14 @@ sequenceDiagram
     Bank -->>- System : result
 
     alt transfer success
-        System ->>+ Booking : update_status_payment("deposit_paid")
-        Booking -->>- System : payment_updated
+        System ->>+ Booking : mark_items_paid(unpaid_item_list)
+        Booking -->>- System : updated
 
         System ->> Residencebooking : update_status("reserved")
         System ->> Vehiclebooking : update_status("reserved")
         System ->> Activitybooking : update_status("reserved")
 
-        System ->>+ Payment : generate_receipt(item_list, final_price)
+        System ->>+ Payment : generate_receipt(unpaid_item_list, final_price)
         Payment -->>- System : receipt
 
         System -->> Traveler : payment_success(receipt)

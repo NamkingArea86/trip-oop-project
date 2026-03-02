@@ -1,0 +1,96 @@
+classDiagram
+direction TB
+
+class User{
+    -user_id : str
+    -level : str
+    -coupons : List~Coupon~
+    +membership_rate() float
+}
+
+class Coupon{
+    -code : str
+    -discount : float
+    -expiry : date
+    -used : bool
+    +valid() bool
+}
+
+class Promotion{
+    -rate : float
+    -min_price : float
+    -expiry : date
+    +discount(price) float
+}
+
+class ResidenceBooking{
+    -residence_id : str
+    -price : float
+    -date_range : str
+    -status : str
+    -paid : bool
+    +get_detail(residenceID)
+    +reserve()
+    +mark_paid()
+}
+
+class VehicleBooking{
+    -vehicle_id : str
+    -price : float
+    -rental_period : str
+    -status : str
+    -paid : bool
+    +get_detail(vehicleID)
+    +reserve()
+    +mark_paid()
+}
+
+class ActivityBooking{
+    -activity_id : str
+    -price : float
+    -schedule : str
+    -status : str
+    -paid : bool
+    +get_detail(activityID)
+    +reserve()
+    +mark_paid()
+}
+
+class Booking{
+    -booking_id : str
+    -user : User
+    -residence : List~ResidenceBooking~
+    -vehicle : List~VehicleBooking~
+    -activity : List~ActivityBooking~
+    -payment_status : str
+    +get_all_items()
+    +get_unpaid_items()
+    +unpaid_price() float
+}
+
+class Payment{
+    +calculate(base,promo,member,coupon) float
+    +receipt(items,amount) dict
+}
+
+class Bank{
+    +verify(slip) bool
+}
+
+class System{
+    -promotions : List~Promotion~
+    +preview(user,booking) dict
+    +pay(user,booking,coupon,slip) dict
+}
+
+User "1" --> "1.." Coupon
+Booking "1" --> "1" User
+Booking "1" --> "1.." ResidenceBooking
+Booking "1" --> "1.." VehicleBooking
+Booking "1" --> "1.." ActivityBooking
+
+System --> Booking
+System --> User
+System --> Promotion
+System --> Payment
+System --> Bank
