@@ -1,0 +1,46 @@
+classDiagram
+direction TB
+
+class System {
+    +startRoomInspection(booking_id: String)
+    +confirmInspectionComplete(booking_id: String)
+    +addDamage(damage_id: String)
+}
+
+class Booking {
+    -booking_id: String
+    -status: String
+    -damage_list: List<DamageItem>
+    +get_booking_item(booking_id: String): Booking
+    +update_status(status: String)
+    +add_damage(damage: DamageItem)
+}
+
+class ResidenceBooking {
+    -residence_booking_id: String
+    -status: String
+    -room_id: String
+    +get_detail(residence_id: String): ResidenceBooking
+    +update_status(status: String)
+}
+
+class Room {
+    -room_id: String
+    -status: String
+    +update_status(status: String)
+}
+
+class DamageItem {
+    -damage_id: String
+    -description: String
+    -price: Float
+}
+
+System --> Booking
+System --> ResidenceBooking
+System --> Room
+System --> DamageItem
+
+Booking "1" *-- "1..*" ResidenceBooking
+Booking "1" *-- "0..*" DamageItem
+ResidenceBooking "1" --> "1" Room

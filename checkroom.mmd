@@ -1,0 +1,55 @@
+sequenceDiagram
+actor Staff
+participant System
+participant Booking
+participant ResidenceBooking
+participant Room
+participant DamageItem
+
+Staff->>+System: startRoomInspection(booking_id)
+
+System->>+Booking: get_booking_item(booking_id)
+Booking-->>-System: booking detail
+
+System->>+ResidenceBooking: get_detail(residence_id)
+ResidenceBooking-->>-System: room info (room_id)
+
+System->>+Room: update_status(room_id, "checking")
+Room-->>-System: status_updated
+
+System-->>-Staff: inspection started + room_id
+
+alt Room Normal
+    Staff->>+System: confirmInspectionComplete(booking_id)
+
+    System->>+Room: update_status(Inspected)
+    Room-->>-System: status updated
+
+    System->>+Booking: update_status(wait_checkout_payment)
+    Booking-->>-System: booking updated
+
+    System-->>-Staff: inspection finished
+
+else Room Damaged
+    loop For each damage found
+        Staff->>+System: addDamage(damage_id)
+
+        System->>+DamageItem: get_damage_detail(damage_id)
+        DamageItem-->>-System: damage info
+
+        System->>+Booking: add_damage(damage_id)
+        Booking-->>-System: damage recorded
+
+        System-->>-Staff: damage added
+    end
+
+    Staff->>+System: confirmInspectionComplete(booking_id)
+
+    System->>+Room: update_status(Inspected)
+    Room-->>-System: status updated
+
+    System->>+Booking: update_status(wait_damage_payment)
+    Booking-->>-System: booking updated
+
+    System-->>-Staff: inspection finished
+end

@@ -52,9 +52,8 @@ class User {
 class Staff {
     - department : String
     + update_resource_status(resource_id)
-    + create_activity()
+    + create_activity(activity_namer,activity_type,price,capacity)
     + update_activity(activity_id)
-    + assign_activity_to_booking()
     + show_review(resource_id,activity_id) 
     + pay_cash(amount)
     + verify_payment(amount) 
@@ -70,19 +69,11 @@ class Review {
     - review : String
 }
 
-class Resource {
-    - resource_id : String
-    - status : String
-    - resorce_type : String
-    + update_status()
-    + check_availability()
-}
-
 class Residence {
     - residence_name : String
     - room_list : List~Room~
-    + show_review()
-}
+    + show_review(resource_id)
+} 
 
 class Room {
     - room_id : String
@@ -94,6 +85,7 @@ class Room {
 
 class Vehicle {
     - vehicle_id : String
+    - type : String
     - seat : int
     - price_per_day : float
     - status : String
@@ -106,8 +98,8 @@ class Activity {
     - price_per_round : float
     - capacity : int
     - status : String
-    + update_activity()
-    + show_review()
+    + update_activity(activity_id)
+    + show_review(activity_id)
 }
 
 class Booking {
@@ -116,42 +108,39 @@ class Booking {
     - residencebooking_list : List~Residencebooking~
     - vehiclebooking_list : List~Vehiclebooking~
     - activitybooking_list : List~Activitybooking~
-    + create_booking(ResidenceObject , start_date , end_date)
-    + add_residencebooking(ResidenceObj)
+    + add_residencebookin(ResidenceObj)
     + add_vehiclebooking(VehicleObj)
     + add_activitybooking(ActivitydeObj)
     + cancel(booking_id, user_id)
     + update_status(booking_id, user_id)
     + get_booking_item(user_id, booking_id)
-    + confirm()
 }
 
 class Residencebooking {
-    - booking_id
+    - residence_booking_id
     - status
     - start_date
     - end_date
     - residence_id
     + add_residence_id()
-    + add_start_date()
-    + add_end_date()
-    + add_booking_id()
-    + update_status()
-    + check_available()
-    + cancle()
+    + add_start_date(date)
+    + add_end_date(date)
+    + add_REbooking_id(num)
+    + update_status(residence_id,status)
+    + cancle(residence_id)
     + get_residence_id()
     + get_detail(residenc_id)
 }
 
 class Vehiclebooking {
-    - booking_id
+    - vehicle_booking_id
     - status
     - vehicle_id
     + add_vehicle_id()
-    + add_booking_id()
-    + update_status()
-    + check_available()
-    + cancle()
+    + add_Vbooking_id(num)
+    + update_status(vehicle_id)
+    + check_available(vehicle_id)
+    + cancle(vehicle_id)
     + get_detail(vehicle_id)
 }
 
@@ -164,8 +153,8 @@ class Activitybooking {
     + add_activity_id()
     + add_booking_id(booking_id)
     + update_status(status)
-    + check_available()
-    + cancle()
+    + check_available(activity_id)
+    + cancle(activity_id)
     + get_detail(activity_id)
 }
 
@@ -192,36 +181,54 @@ class Bank{
     + verify_transfer(slip_no)
 }
 
-class TimeSlot{
+class ResidenceTimeSlot{
     - time_slot_id
     - start_datetime
     - end_datetime
+    - current_user
+    + get_user(user)
+    + check_avalible(vehicle_id)
+    + add_slot_id(slot_id)
+    + add_start_datetime(datetime)
+    + add_end_datetime(datetime)            
+}
+
+class VehicleTimeSlot{
+    - time_slot_id
+    - start_datetime
+    - end_datetime
+    - current_user
+    + get_user(user)
+    + check_avalible(vehicle_id)
+    + get_user(user)  
     + add_slot_id(slot_id)
     + add_start_datetime(datetime)
     + add_end_datetime(datetime)            
 }
 
 System "1" o-- "1..*" User
-System "1" o-- "1..*" Resource
 System "1" o-- "1..*" Promotion
 User <|-- Staff
 Staff <|-- Manager
-Resource <|-- Residence
-Resource <|-- Vehicle
+System <|-- Residence
+System <|-- Vehicle
 System o-- Activity
 Residence o-- Room
 Booking "1" *-- "1..*" Residencebooking
 Booking "1" *-- "1..*" Vehiclebooking
 Booking "1" *-- "1..*" Activitybooking
+Residencebooking <-- Residence
+Vehiclebooking <-- Vehicle
+Activitybooking <-- Activity
 User "1" o-- "0..*" Booking
 User "1" o-- "0..*" Coupon
 Booking "1" *-- "1" Payment
 Booking --> Residence
 Booking --> Vehicle
 Booking --> Activity
-System o-- Review
-Review --o Staff
+Room --> Residence
+Room --> Residencebooking
 Review --o Residence
-Review --o Activity
-TimeSlot --> Activity
+ResidenceTimeSlot --> Residencebooking
+VehicleTimeSlot --> Vehiclebooking
 Payment --> Bank

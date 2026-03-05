@@ -92,7 +92,6 @@ class Vehiclebooking:
     def get_id(self):
         return self.vehicle_id
 
-
 # ---------------- ACTIVITY BOOKING ----------------
 class Activitybooking:
     def __init__(self, activity_id, price, start_datetime=None, end_datetime=None):
