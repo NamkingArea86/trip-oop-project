@@ -9,7 +9,7 @@ participant DamageItem
 Staff->>+System: startRoomInspection(booking_id)
 
 System->>+Booking: get_booking_item(booking_id)
-Booking->>+Residencebooking: get_detail()
+Booking->>+Residencebooking: start_room_check()
 Residencebooking->>+Room: update_status("checking")
 Room-->>-Residencebooking: status updated
 Residencebooking-->>-Booking: room ready

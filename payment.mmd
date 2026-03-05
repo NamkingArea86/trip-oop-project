@@ -43,13 +43,11 @@ sequenceDiagram
     System ->>+ User : get_coupon_list(user_id)
     User -->>- System : coupon_list
 
-    loop validate coupon
-        System ->>+ Coupon : validate_coupon(coupon_code)
-        Coupon -->>- System : coupon_discount
-    end
-
     System -->> Traveler : display(list_coupon)
     Traveler ->> System : select_coupon(coupon_code)
+
+    System ->>+ Coupon : validate_coupon(coupon_code)
+    Coupon -->>- System : coupon_discount
 
     System ->>+ Booking : calculate_price(unpaid_price, discounts)
     Booking -->>- System : final_price
@@ -65,14 +63,17 @@ sequenceDiagram
         System ->>+ Booking : mark_items_paid(unpaid_item_list)
         Booking -->>- System : updated
 
-        System ->> Residencebooking : update_status("reserved")
-        System ->> Vehiclebooking : update_status("reserved")
-        System ->> Activitybooking : update_status("reserved")
+        System ->>+ Booking : update_item_status("reserved")
+        Booking ->> Residencebooking : update_status("reserved")
+        Booking ->> Vehiclebooking : update_status("reserved")
+        Booking ->> Activitybooking : update_status("reserved")
+        Booking -->>- System : updated
 
         System ->>+ Payment : generate_receipt(unpaid_item_list, final_price)
         Payment -->>- System : receipt
 
         System -->> Traveler : payment_success(receipt)
+
     else transfer failed
         System -->> Traveler : payment_failed()
     end
