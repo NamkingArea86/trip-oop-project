@@ -2,42 +2,38 @@ sequenceDiagram
 actor Staff
 participant System
 participant Booking
-participant ResidenceBooking
+participant Residencebooking
 participant Room
 participant DamageItem
 
 Staff->>+System: startRoomInspection(booking_id)
 
 System->>+Booking: get_booking_item(booking_id)
+Booking->>+Residencebooking: get_detail()
+Residencebooking->>+Room: update_status("checking")
+Room-->>-Residencebooking: status updated
+Residencebooking-->>-Booking: room ready
 Booking-->>-System: booking detail
 
-System->>+ResidenceBooking: get_detail(residence_id)
-ResidenceBooking-->>-System: room info (room_id)
+System-->>-Staff: inspection started
 
-System->>+Room: update_status(room_id, "checking")
-Room-->>-System: status_updated
-
-System-->>-Staff: inspection started + room_id
 
 alt Room Normal
     Staff->>+System: confirmInspectionComplete(booking_id)
 
-    System->>+Room: update_status(Inspected)
-    Room-->>-System: status updated
-
-    System->>+Booking: update_status(wait_checkout_payment)
+    System->>+Booking: update_status("wait_checkout_payment")
     Booking-->>-System: booking updated
 
     System-->>-Staff: inspection finished
 
+
 else Room Damaged
     loop For each damage found
-        Staff->>+System: addDamage(damage_id)
+        Staff->>+System: addDamage(booking_id, damage_id)
 
-        System->>+DamageItem: get_damage_detail(damage_id)
-        DamageItem-->>-System: damage info
-
-        System->>+Booking: add_damage(damage_id)
+        System->>+Booking: add_damage(damage)
+        Booking->>+DamageItem: create damage item
+        DamageItem-->>-Booking: damage object
         Booking-->>-System: damage recorded
 
         System-->>-Staff: damage added
@@ -45,10 +41,7 @@ else Room Damaged
 
     Staff->>+System: confirmInspectionComplete(booking_id)
 
-    System->>+Room: update_status(Inspected)
-    Room-->>-System: status updated
-
-    System->>+Booking: update_status(wait_damage_payment)
+    System->>+Booking: update_status("wait_damage_payment")
     Booking-->>-System: booking updated
 
     System-->>-Staff: inspection finished

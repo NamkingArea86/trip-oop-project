@@ -25,7 +25,9 @@ class System {
     + book_activity(user_id, activity_id, booking_id)
     + request_payment(user_id, booking_id)
     + select_coupon(coupon_code)
-    + choose_payment(Transfer or Cash)
+    + startRoomInspection(booking_id)
+    + confirmInspectionComplete(booking_id)
+    + addDamage(booking_id, damage_id)
 }
 
 class User {
@@ -81,6 +83,7 @@ class Room {
     - price : float
     - capacity : int
     - status : String
+    + update_status(status : String)
 }
 
 class Vehicle {
@@ -102,18 +105,26 @@ class Activity {
     + show_review(activity_id)
 }
 
+class DamageItem {
+    - damage_id : String
+    - description : String
+    - price : float
+}
+
 class Booking {
     - booking_id : String
     - status : String
     - residencebooking_list : List~Residencebooking~
     - vehiclebooking_list : List~Vehiclebooking~
     - activitybooking_list : List~Activitybooking~
+    - damage_list : List~DamageItem~
     + add_residencebookin(ResidenceObj)
     + add_vehiclebooking(VehicleObj)
     + add_activitybooking(ActivitydeObj)
     + cancel(booking_id, user_id)
-    + update_status(booking_id, user_id)
+    + update_status(booking_id, user_id, status)
     + get_booking_item(user_id, booking_id)
+    + add_damage(damage : DamageItem)
 }
 
 class Residencebooking {
@@ -122,6 +133,7 @@ class Residencebooking {
     - start_date
     - end_date
     - residence_id
+    - room_id
     + add_residence_id()
     + add_start_date(date)
     + add_end_date(date)
@@ -129,7 +141,7 @@ class Residencebooking {
     + update_status(residence_id,status)
     + cancle(residence_id)
     + get_residence_id()
-    + get_detail(residenc_id)
+    + get_detail(residence_id)
 }
 
 class Vehiclebooking {
@@ -208,6 +220,7 @@ class VehicleTimeSlot{
 
 System "1" o-- "1..*" User
 System "1" o-- "1..*" Promotion
+System --> Booking
 User <|-- Staff
 Staff <|-- Manager
 System <|-- Residence
@@ -217,7 +230,9 @@ Residence o-- Room
 Booking "1" *-- "1..*" Residencebooking
 Booking "1" *-- "1..*" Vehiclebooking
 Booking "1" *-- "1..*" Activitybooking
+Booking "1" *-- "0..*" DamageItem
 Residencebooking <-- Residence
+Residencebooking "1" --> "1" Room
 Vehiclebooking <-- Vehicle
 Activitybooking <-- Activity
 User "1" o-- "0..*" Booking
