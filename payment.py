@@ -1,4 +1,4 @@
-#payment
+# payment
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -8,153 +8,219 @@ app = FastAPI()
 
 # ---------------- USER ----------------
 class User:
-    def __init__(self, user_id, level, coupons=None):
-        self.user_id = user_id
-        self.level = level
-        self.coupons = coupons or []
 
-    def calculate_membership(self, user_id):
-        return {"gold": 0.2, "silver": 0.1}.get(self.level, 0)
+    def __init__(self, user_id, coupons=None):
+        self.__user_id = user_id
+        self.__coupons = coupons or []
+        self.__total_spent = 0
 
-    def get_coupon_list(self, user_id):
-        return [c.code for c in self.coupons if c.validate_coupon(c.code)]
+    def get_user_id(self):
+        return self.__user_id
+
+    def get_coupons(self):
+        return self.__coupons
+
+    def add_spent(self, amount):
+        self.__total_spent += amount
+
+    def calculate_membership(self):
+        if self.__total_spent >= 10000:
+            return 0.2
+        elif self.__total_spent >= 5000:
+            return 0.1
+        else:
+            return 0
+
+    def get_coupon_list(self):
+        return [
+            c.get_code()
+            for c in self.__coupons
+            if c.validate_coupon(c.get_code())
+        ]
 
 
 # ---------------- COUPON ----------------
 class Coupon:
+
     def __init__(self, code, discount, expiry):
-        self.code = code
-        self.discount = discount
-        self.expiry = expiry
-        self.used = False
+        self.__code = code
+        self.__discount = discount
+        self.__expiry = expiry
+        self.__used = False
+
+    def get_code(self):
+        return self.__code
+
+    def get_discount(self):
+        return self.__discount
+
+    def set_used(self, value):
+        self.__used = value
 
     def validate_coupon(self, coupon_code):
         return (
-            self.code == coupon_code
-            and not self.used
-            and date.today() <= self.expiry
+            self.__code == coupon_code
+            and not self.__used
+            and date.today() <= self.__expiry
         )
 
 
 # ---------------- PROMOTION ----------------
 class Promotion:
+
     def __init__(self, rate, min_price, expiry):
-        self.rate = rate
-        self.min_price = min_price
-        self.expiry = expiry
+        self.__rate = rate
+        self.__min_price = min_price
+        self.__expiry = expiry
 
     def get_valid_promotion(self, base_price):
-        if base_price >= self.min_price and date.today() <= self.expiry:
-            return base_price * self.rate
+        if base_price >= self.__min_price and date.today() <= self.__expiry:
+            return base_price * self.__rate
         return 0
+
 
 # ---------------- RESIDENCE BOOKING ----------------
 class Residencebooking:
+
     def __init__(self, residence_id, price):
-        self.residence_id = residence_id
-        self.price = price
-        self.status = "pending"
-        self.paid = False
+        self.__residence_id = residence_id
+        self.__price = price
+        self.__status = "pending"
+        self.__paid = False
 
     def get_detail(self, residence_id):
-        if residence_id == self.residence_id:
+        if residence_id == self.__residence_id:
             return self
         return None
 
+    def get_price(self):
+        return self.__price
+
+    def get_paid(self):
+        return self.__paid
+
     def update_status(self, status):
-        self.status = status
+        self.__status = status
 
     def mark_paid(self):
-        self.paid = True
+        self.__paid = True
 
     def get_id(self):
-        return self.residence_id
+        return self.__residence_id
 
 
 # ---------------- VEHICLE BOOKING ----------------
 class Vehiclebooking:
+
     def __init__(self, vehicle_id, price):
-        self.vehicle_id = vehicle_id
-        self.price = price
-        self.status = "pending"
-        self.paid = False
+        self.__vehicle_id = vehicle_id
+        self.__price = price
+        self.__status = "pending"
+        self.__paid = False
 
     def get_detail(self, vehicle_id):
-        if vehicle_id == self.vehicle_id:
+        if vehicle_id == self.__vehicle_id:
             return self
         return None
 
+    def get_price(self):
+        return self.__price
+
+    def get_paid(self):
+        return self.__paid
+
     def update_status(self, status):
-        self.status = status
+        self.__status = status
 
     def mark_paid(self):
-        self.paid = True
+        self.__paid = True
 
     def get_id(self):
-        return self.vehicle_id
+        return self.__vehicle_id
 
 
 # ---------------- ACTIVITY BOOKING ----------------
 class Activitybooking:
+
     def __init__(self, activity_id, price):
-        self.activity_id = activity_id
-        self.price = price
-        self.status = "pending"
-        self.paid = False
+        self.__activity_id = activity_id
+        self.__price = price
+        self.__status = "pending"
+        self.__paid = False
 
     def get_detail(self, activity_id):
-        if activity_id == self.activity_id:
+        if activity_id == self.__activity_id:
             return self
         return None
 
+    def get_price(self):
+        return self.__price
+
+    def get_paid(self):
+        return self.__paid
+
     def update_status(self, status):
-        self.status = status
+        self.__status = status
 
     def mark_paid(self):
-        self.paid = True
+        self.__paid = True
 
     def get_id(self):
-        return self.activity_id
+        return self.__activity_id
 
 
 # ---------------- BOOKING ----------------
 class Booking:
+
     def __init__(self, booking_id, user):
-        self.booking_id = booking_id
-        self.user = user
-        self.residence = []
-        self.vehicle = []
-        self.activity = []
-        self.status = "unpaid"
+        self.__booking_id = booking_id
+        self.__user = user
+        self.__residence = []
+        self.__vehicle = []
+        self.__activity = []
+        self.__status = "unpaid"
 
-    def get_unpaid_items(self, user_id, booking_id):
-        items = self.residence + self.vehicle + self.activity
-        unpaid = []
+    def get_booking_id(self):
+        return self.__booking_id
 
-        for i in items:
-            if not i.paid:
-                detail = i.get_detail(i.get_id())
-                if detail:
-                    unpaid.append(detail)
+    def get_residence(self):
+        return self.__residence
 
-        price = sum(i.price for i in unpaid)
+    def get_vehicle(self):
+        return self.__vehicle
+
+    def get_activity(self):
+        return self.__activity
+
+    def get_unpaid_items(self):
+
+        items = self.__residence + self.__vehicle + self.__activity
+        unpaid = [i for i in items if not i.get_paid()]
+
+        price = sum(i.get_price() for i in unpaid)
+
         return unpaid, price
 
-    def calculate_price(self, base_price, promotion_discount, membership_discount, coupon_discount):
-        total = base_price - promotion_discount
-        total -= total * membership_discount
-        total -= coupon_discount
+    def calculate_price(self, base, promo, member, coupon):
+
+        total = base - promo
+        total -= total * member
+        total -= coupon
+
         return max(total, 0)
 
-    def mark_items_paid(self, item_list):
-        for i in item_list:
+    def mark_items_paid(self, items, final_price):
+
+        for i in items:
             i.mark_paid()
             i.update_status("reserved")
 
-        if all(i.paid for i in (self.residence + self.vehicle + self.activity)):
-            self.status = "fully_paid"
+        self.__user.add_spent(final_price)
+
+        if all(i.get_paid() for i in (self.__residence + self.__vehicle + self.__activity)):
+            self.__status = "fully_paid"
         else:
-            self.status = "partially_paid"
+            self.__status = "partially_paid"
 
 
 # ---------------- PAYMENT ----------------
@@ -162,12 +228,13 @@ class Payment:
 
     @staticmethod
     def generate_receipt(items, amount):
+
         return {
             "items": [
                 {
                     "id": i.get_id(),
                     "type": i.__class__.__name__,
-                    "price": i.price
+                    "price": i.get_price()
                 }
                 for i in items
             ],
@@ -179,60 +246,63 @@ class Payment:
 class Bank:
 
     @staticmethod
-    def verify_transfer(slip_no):
-        return slip_no and slip_no.startswith("OK")
+    def verify_transfer(slip):
+
+        return slip and slip.startswith("OK")
 
 
 # ---------------- SYSTEM ----------------
 class System:
 
     def __init__(self):
-        self.promotions = []
-        self.selected_coupons = {}
+        self.__promotions = []
+        self.__selected_coupons = {}
+
+    def get_promotions(self):
+        return self.__promotions
 
     def request_payment(self, user, booking):
 
-        items, base = booking.get_unpaid_items(user.user_id, booking.booking_id)
+        items, base = booking.get_unpaid_items()
 
         promo = max(
-            [p.get_valid_promotion(base) for p in self.promotions],
+            [p.get_valid_promotion(base) for p in self.__promotions],
             default=0
         )
 
-        member = user.calculate_membership(user.user_id)
-        coupons = user.get_coupon_list(user.user_id)
+        member = user.calculate_membership()
 
         return {
-            "unpaid_items": [
+            "items": [
                 {
                     "id": i.get_id(),
                     "type": i.__class__.__name__,
-                    "price": i.price
+                    "price": i.get_price()
                 }
                 for i in items
             ],
-            "unpaid_price": base,
+            "base_price": base,
             "promotion_discount": promo,
             "membership_discount": member,
-            "available_coupons": coupons
+            "available_coupons": user.get_coupon_list()
         }
 
     def select_coupon(self, user, booking, coupon_code):
 
-        items, base = booking.get_unpaid_items(user.user_id, booking.booking_id)
+        items, base = booking.get_unpaid_items()
 
         promo = max(
-            [p.get_valid_promotion(base) for p in self.promotions],
+            [p.get_valid_promotion(base) for p in self.__promotions],
             default=0
         )
 
-        member = user.calculate_membership(user.user_id)
+        member = user.calculate_membership()
 
         coupon_value = 0
 
-        for c in user.coupons:
+        for c in user.get_coupons():
             if coupon_code and c.validate_coupon(coupon_code):
-                coupon_value = c.discount
+                coupon_value = c.get_discount()
                 break
 
         final_price = booking.calculate_price(
@@ -242,7 +312,7 @@ class System:
             coupon_value
         )
 
-        self.selected_coupons[booking.booking_id] = coupon_code
+        self.__selected_coupons[booking.get_booking_id()] = coupon_code
 
         return {
             "base_price": base,
@@ -252,28 +322,30 @@ class System:
             "final_price": final_price
         }
 
-    def submit_slip_number(self, user, booking, slip_no):
+    def submit_slip_number(self, user, booking, slip):
 
-        items, base = booking.get_unpaid_items(user.user_id, booking.booking_id)
+        items, base = booking.get_unpaid_items()
 
         if base == 0:
             raise HTTPException(400, "Nothing to pay")
 
-        coupon_code = self.selected_coupons.get(booking.booking_id)
+        coupon_code = self.__selected_coupons.get(
+            booking.get_booking_id()
+        )
 
         promo = max(
-            [p.get_valid_promotion(base) for p in self.promotions],
+            [p.get_valid_promotion(base) for p in self.__promotions],
             default=0
         )
 
-        member = user.calculate_membership(user.user_id)
+        member = user.calculate_membership()
 
         coupon_value = 0
         used_coupon = None
 
-        for c in user.coupons:
+        for c in user.get_coupons():
             if coupon_code and c.validate_coupon(coupon_code):
-                coupon_value = c.discount
+                coupon_value = c.get_discount()
                 used_coupon = c
                 break
 
@@ -284,13 +356,13 @@ class System:
             coupon_value
         )
 
-        if not Bank.verify_transfer(slip_no):
+        if not Bank.verify_transfer(slip):
             raise HTTPException(400, "Transfer failed")
 
-        booking.mark_items_paid(items)
+        booking.mark_items_paid(items, final_price)
 
         if used_coupon:
-            used_coupon.used = True
+            used_coupon.set_used(True)
 
         return Payment.generate_receipt(items, final_price)
 
@@ -302,26 +374,28 @@ bookings = {}
 
 u = User(
     "U001",
-    "silver",
     [
         Coupon("DISC10", 100, date(2026, 12, 31)),
         Coupon("DISC50", 50, date(2026, 12, 31))
     ]
 )
 
-users[u.user_id] = u
+users[u.get_user_id()] = u
 
 b = Booking("B001", u)
-b.residence.append(Residencebooking("HOTEL1", 2000))
 
-bookings[b.booking_id] = b
+b.get_residence().append(
+    Residencebooking("HOTEL1", 2000)
+)
 
-system.promotions.append(
+bookings[b.get_booking_id()] = b
+
+system.get_promotions().append(
     Promotion(0.1, 1000, date(2026, 12, 31))
 )
 
 
-# ---------------- REQUEST MODELS ----------------
+# ---------------- REQUEST MODEL ----------------
 class PreviewReq(BaseModel):
     user_id: str
     booking_id: str

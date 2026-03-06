@@ -63,7 +63,7 @@ class Booking:
     def __init__(self, booking_id, residence_booking: ResidenceBooking):
         self.__booking_id = booking_id
         self.__status = "active"
-        self.__residence_booking = residence_booking
+        self.__residence_booking = []
         self.__damage_list = []
 
     @property
