@@ -1,3 +1,5 @@
+#payment
+
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from datetime import date
@@ -11,11 +13,9 @@ class User:
         self.level = level
         self.coupons = coupons or []
 
-    # UML: calculate_membership(user_id)
     def calculate_membership(self, user_id):
         return {"gold": 0.2, "silver": 0.1}.get(self.level, 0)
 
-    # UML: get_coupon_list(user_id)
     def get_coupon_list(self, user_id):
         return [c.code for c in self.coupons if c.validate_coupon(c.code)]
 
@@ -28,7 +28,6 @@ class Coupon:
         self.expiry = expiry
         self.used = False
 
-    # UML: validate_coupon(coupon_code)
     def validate_coupon(self, coupon_code):
         return (
             self.code == coupon_code
@@ -44,20 +43,16 @@ class Promotion:
         self.min_price = min_price
         self.expiry = expiry
 
-    # UML: get_valid_promotion(base_price)
     def get_valid_promotion(self, base_price):
         if base_price >= self.min_price and date.today() <= self.expiry:
             return base_price * self.rate
         return 0
 
-
 # ---------------- RESIDENCE BOOKING ----------------
 class Residencebooking:
-    def __init__(self, residence_id, price, start_date=None, end_date=None):
+    def __init__(self, residence_id, price):
         self.residence_id = residence_id
         self.price = price
-        self.start_date = start_date
-        self.end_date = end_date
         self.status = "pending"
         self.paid = False
 
@@ -101,11 +96,9 @@ class Vehiclebooking:
 
 # ---------------- ACTIVITY BOOKING ----------------
 class Activitybooking:
-    def __init__(self, activity_id, price, start_datetime=None, end_datetime=None):
+    def __init__(self, activity_id, price):
         self.activity_id = activity_id
         self.price = price
-        self.start_datetime = start_datetime
-        self.end_datetime = end_datetime
         self.status = "pending"
         self.paid = False
 
@@ -134,7 +127,6 @@ class Booking:
         self.activity = []
         self.status = "unpaid"
 
-    # UML: get_unpaid_items(user_id, booking_id)
     def get_unpaid_items(self, user_id, booking_id):
         items = self.residence + self.vehicle + self.activity
         unpaid = []
@@ -148,14 +140,12 @@ class Booking:
         price = sum(i.price for i in unpaid)
         return unpaid, price
 
-    # UML: calculate_price(...)
     def calculate_price(self, base_price, promotion_discount, membership_discount, coupon_discount):
         total = base_price - promotion_discount
         total -= total * membership_discount
         total -= coupon_discount
         return max(total, 0)
 
-    # UML: mark_items_paid(item_list)
     def mark_items_paid(self, item_list):
         for i in item_list:
             i.mark_paid()
@@ -170,7 +160,6 @@ class Booking:
 # ---------------- PAYMENT ----------------
 class Payment:
 
-    # UML: generate_receipt(item_list, final_amount)
     @staticmethod
     def generate_receipt(items, amount):
         return {
@@ -189,7 +178,6 @@ class Payment:
 # ---------------- BANK ----------------
 class Bank:
 
-    # UML: verify_transfer(slip_no)
     @staticmethod
     def verify_transfer(slip_no):
         return slip_no and slip_no.startswith("OK")
@@ -200,8 +188,8 @@ class System:
 
     def __init__(self):
         self.promotions = []
+        self.selected_coupons = {}
 
-    # UML: request_payment(user_id, booking_id)
     def request_payment(self, user, booking):
 
         items, base = booking.get_unpaid_items(user.user_id, booking.booking_id)
@@ -229,13 +217,49 @@ class System:
             "available_coupons": coupons
         }
 
-    # UML: submit_slip_number(...)
-    def submit_slip_number(self, user, booking, coupon_code, slip_no):
+    def select_coupon(self, user, booking, coupon_code):
+
+        items, base = booking.get_unpaid_items(user.user_id, booking.booking_id)
+
+        promo = max(
+            [p.get_valid_promotion(base) for p in self.promotions],
+            default=0
+        )
+
+        member = user.calculate_membership(user.user_id)
+
+        coupon_value = 0
+
+        for c in user.coupons:
+            if coupon_code and c.validate_coupon(coupon_code):
+                coupon_value = c.discount
+                break
+
+        final_price = booking.calculate_price(
+            base,
+            promo,
+            member,
+            coupon_value
+        )
+
+        self.selected_coupons[booking.booking_id] = coupon_code
+
+        return {
+            "base_price": base,
+            "promotion_discount": promo,
+            "membership_discount": member,
+            "coupon_discount": coupon_value,
+            "final_price": final_price
+        }
+
+    def submit_slip_number(self, user, booking, slip_no):
 
         items, base = booking.get_unpaid_items(user.user_id, booking.booking_id)
 
         if base == 0:
             raise HTTPException(400, "Nothing to pay")
+
+        coupon_code = self.selected_coupons.get(booking.booking_id)
 
         promo = max(
             [p.get_valid_promotion(base) for p in self.promotions],
@@ -303,10 +327,15 @@ class PreviewReq(BaseModel):
     booking_id: str
 
 
-class PayReq(BaseModel):
+class SelectCouponReq(BaseModel):
     user_id: str
     booking_id: str
     coupon: str | None = None
+
+
+class PayReq(BaseModel):
+    user_id: str
+    booking_id: str
     slip: str
 
 
@@ -326,6 +355,22 @@ def request_payment(data: PreviewReq):
     )
 
 
+@app.post("/select_coupon")
+def select_coupon(data: SelectCouponReq):
+
+    if data.user_id not in users:
+        raise HTTPException(404, "User not found")
+
+    if data.booking_id not in bookings:
+        raise HTTPException(404, "Booking not found")
+
+    return system.select_coupon(
+        users[data.user_id],
+        bookings[data.booking_id],
+        data.coupon
+    )
+
+
 @app.post("/submit_slip_number")
 def submit_slip_number(data: PayReq):
 
@@ -338,6 +383,5 @@ def submit_slip_number(data: PayReq):
     return system.submit_slip_number(
         users[data.user_id],
         bookings[data.booking_id],
-        data.coupon,
         data.slip
     )

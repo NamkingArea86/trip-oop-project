@@ -1,9 +1,9 @@
+#checkroom
+
 from fastapi import FastAPI
 from pydantic import BaseModel
 
 app = FastAPI()
-
-# ------------------ MODEL ------------------
 
 class DamageItem:
     def __init__(self, damage_id, description, price):
@@ -22,7 +22,6 @@ class DamageItem:
             "price": self._price
         }
 
-
 class Room:
     def __init__(self, room_id):
         self._room_id = room_id
@@ -35,7 +34,6 @@ class Room:
     def update_status(self, status):
         self._status = status
         return self._status
-
 
 class ResidenceBooking:
     def __init__(self, residence_booking_id, room: Room):
