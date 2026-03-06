@@ -7,92 +7,94 @@ app = FastAPI()
 
 class DamageItem:
     def __init__(self, damage_id, description, price):
-        self._damage_id = damage_id
-        self._description = description
-        self._price = price
+        self.__damage_id = damage_id
+        self.__description = description
+        self.__price = price
 
     @property
     def damage_id(self):
-        return self._damage_id
+        return self.__damage_id
 
     def get_damage_detail(self):
         return {
-            "damage_id": self._damage_id,
-            "description": self._description,
-            "price": self._price
+            "damage_id": self.__damage_id,
+            "description": self.__description,
+            "price": self.__price
         }
 
 class Room:
     def __init__(self, room_id):
-        self._room_id = room_id
-        self._status = "available"
+        self.__room_id = room_id
+        self.__status = "available"
 
     @property
     def room_id(self):
-        return self._room_id
+        return self.__room_id
+
+    @property
+    def status(self):
+        return self.__status
 
     def update_status(self, status):
-        self._status = status
-        return self._status
+        self.__status = status
+        return self.__status
 
 class ResidenceBooking:
     def __init__(self, residence_booking_id, room: Room):
-        self._residence_booking_id = residence_booking_id
-        self._room = room
+        self.__residence_booking_id = residence_booking_id
+        self.__room = room
 
     @property
     def room(self):
-        return self._room
+        return self.__room
 
     def start_room_check(self):
-        self._room.update_status("checking")
+        self.__room.update_status("checking")
         return "room checking started"
 
     def get_detail(self):
         return {
-            "residence_booking_id": self._residence_booking_id,
-            "room_id": self._room.room_id
+            "residence_booking_id": self.__residence_booking_id,
+            "room_id": self.__room.room_id
         }
 
 
 class Booking:
     def __init__(self, booking_id, residence_booking: ResidenceBooking):
-        self._booking_id = booking_id
-        self._status = "active"
-        self._residence_booking = residence_booking
-        self._damage_list = []
+        self.__booking_id = booking_id
+        self.__status = "active"
+        self.__residence_booking = residence_booking
+        self.__damage_list = []
 
     @property
     def booking_id(self):
-        return self._booking_id
+        return self.__booking_id
 
-    def get_booking_item(self, booking_id):
-        if booking_id == self._booking_id:
-            return self._residence_booking.get_detail()
-        return None
-
+    def get_booking_item(self):
+        return self.__residence_booking.get_detail()
+    
     def start_room_inspection(self):
-        return self._residence_booking.start_room_check()
+        return self.__residence_booking.start_room_check()
 
     def update_status(self, status):
-        self._status = status
-        return self._status
+        self.__status = status
+        return self.__status
 
     def add_damage(self, damage_id, description, price):
         damage = DamageItem(damage_id, description, price)
-        self._damage_list.append(damage)
+        self.__damage_list.append(damage)
         return damage.get_damage_detail()
 
 
 class System:
     def __init__(self):
-        self._bookings = {}
+        self.__bookings = {}
 
     def add_booking(self, booking: Booking):
-        self._bookings[booking.booking_id] = booking
+        self.__bookings[booking.booking_id] = booking
 
     def _get_booking(self, booking_id):
-        return self._bookings.get(booking_id)
+        return self.__bookings.get(booking_id)
 
     def start_room_inspection(self, booking_id):
         booking = self._get_booking(booking_id)
@@ -100,7 +102,6 @@ class System:
         if not booking:
             return {"error": "Booking not found"}
 
-        booking.get_booking_item(booking_id)
         return {"message": booking.start_room_inspection()}
 
     def add_damage(self, booking_id, damage_id, description, price):
